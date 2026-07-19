@@ -1,81 +1,117 @@
-# World Room
+# Launch Desk
 
-World Room is a voice-first creative companion for inventing fictional settings, characters, conflicts, and scene hooks. It uses the OpenAI Realtime API over WebRTC for low-latency audio input and output.
+Launch Desk is a polished web app that turns a rough product launch idea into an actionable engineering release plan. It uses the current TypeScript OpenAI Agents SDK, function tools, built-in tracing, and a server-sent event stream.
+
+## What it produces
+
+- Prioritized P0/P1/P2 launch plan
+- Risk register with mitigation, triggers, and owner roles
+- Role-based owner checklist
+- Internal, email, social, and changelog copy suggestions
+- Follow-up questions for missing launch decisions
 
 ## Architecture
 
-### Browser responsibilities
+### Browser
 
-- Requests microphone permission with `getUserMedia`.
-- Creates the `RTCPeerConnection`, local microphone track, remote audio element, and Realtime data channel.
-- Fetches a short-lived client secret from `/api/token`.
-- Exchanges SDP directly with `https://api.openai.com/v1/realtime/calls` using that ephemeral credential.
-- Renders microphone, connection, speaking, listening, and transcript states.
-- Handles mute, cancellation through session close, and bounded connection recovery.
+- Collects the brief, audience, date, constraints, and assets.
+- Posts JSON to `POST /api/agent`.
+- Reads SSE until the run ends.
+- Renders tool progress separately from model text deltas.
+- Supports cancellation through `AbortController`.
+- Never receives `OPENAI_API_KEY` or raw Agents SDK objects.
 
-### Server responsibilities
+### Server
 
-- Keeps `OPENAI_API_KEY` server-only.
-- Creates short-lived Realtime client secrets through `/v1/realtime/client_secrets`.
-- Owns the trusted session configuration: model, voice, worldbuilding instructions, transcription model, and VAD settings.
-- Adds a privacy-preserving anonymous safety identifier.
-- Applies a timeout and returns sanitized errors without exposing upstream credentials or response bodies.
+- Validates and normalizes input.
+- Runs a reusable `Runner` and `Launch Desk` agent.
+- Exposes four strict Zod-backed tools.
+- Maps `run_item_stream_event` events into `tool.started` and `tool.completed`.
+- Maps raw Responses model deltas into `text.delta`.
+- Waits for `stream.completed` before ending the response.
+- Uses Agents SDK tracing by default while excluding sensitive trace payloads from this run.
+
+## Project structure
+
+```text
+api/agent.js                  Streaming API route
+src/agent/launch-agent.js     Agent, model, instructions, reusable Runner
+src/agent/tools.js            Agents SDK function tool definitions
+src/core/planning.js          Deterministic planning logic used by tools
+src/server/sse.js             Stable SSE event adapter
+app.js                        Browser stream client and UI state
+index.html / styles.css       Frontend
+scripts/verify-stream.mjs     Real end-to-end stream verification
+scripts/verify-sdk-import.mjs SDK construction check
+tests/                        Pure logic and stream-adapter tests
+docs/DEVELOPER_NOTES.md       Extension and operations guide
+```
 
 ## Local setup
 
 1. Install Node.js 20 or newer.
 2. Install dependencies:
 
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 
 3. Create `.env.local`:
 
-   ```bash
-   OPENAI_API_KEY=your_server_side_key
-   ```
-
-4. Start the Vercel development server:
-
-   ```bash
-   npm run dev
-   ```
-
-5. Open the localhost URL printed by Vercel, select **Open the room**, and allow microphone access.
-
-Microphone access requires HTTPS or localhost. Never put `OPENAI_API_KEY` in `app.js`, `index.html`, public environment variables, or browser storage.
-
-## Optional configuration
-
 ```bash
-OPENAI_REALTIME_MODEL=gpt-realtime-2.1
-OPENAI_REALTIME_VOICE=marin
-OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
+OPENAI_API_KEY=your_server_side_key
+OPENAI_MODEL=gpt-5.6-terra
 ```
 
-The default voice is selected before the first audio response and should not be changed during a live session.
+4. Start frontend and backend together through Vercel Dev:
+
+```bash
+npm run dev
+```
+
+5. Open the printed localhost URL.
+
+The server process—not the browser—must be able to reach `api.openai.com`.
 
 ## Commands
 
 ```bash
-npm run dev
 npm test
 npm run check
+npm run verify:e2e
 ```
+
+`npm run verify:e2e` makes a real streamed POST request to `http://localhost:3000/api/agent` and fails unless it receives at least one tool event and one model text delta. Override the origin with `LAUNCH_DESK_URL`.
+
+## Model policy
+
+The default is `gpt-5.6-terra`, selected for a balance of intelligence and cost. Override it with `OPENAI_MODEL`. Evaluate `gpt-5.6-sol` for higher-stakes, deeply constrained launches and `gpt-5.6-luna` for high-volume, bounded planning tasks before routing production traffic.
+
+## Tracing
+
+Agents SDK tracing is enabled by default in Node.js. Set `OPENAI_AGENTS_DISABLE_TRACING=1` only when required by privacy or retention policy. This app sets `traceIncludeSensitiveData: false` for launch runs.
 
 ## Validation checklist
 
-- [ ] The page loads without an API key in the browser bundle or network responses.
-- [ ] Denying microphone permission produces a useful error and leaves the room closed.
-- [ ] Granting permission opens a WebRTC session and plays the opening greeting.
-- [ ] The UI moves through listening, thinking, and speaking states.
-- [ ] User and assistant transcripts appear for normal turns.
-- [ ] The microphone mute control stops sending live speech.
-- [ ] Speaking over the assistant interrupts it without requiring a manual stop button.
-- [ ] Closing the room stops microphone tracks and resets the timer.
-- [ ] A temporary network interruption triggers bounded recovery rather than an infinite reconnect loop.
-- [ ] Typed sparks produce spoken responses.
-- [ ] The companion asks concise, useful worldbuilding questions and preserves established canon.
+### Agent behavior
+- [ ] The agent calls each of the four launch tools.
+- [ ] The final output contains all six required sections.
+- [ ] P0 items distinguish launch blockers from post-launch improvements.
+- [ ] Risks include probability, impact, mitigation, trigger, and owner role.
+- [ ] Missing inputs produce explicit assumptions and follow-up questions.
+- [ ] Copy avoids unsupported claims.
 
-See [`docs/DEVELOPER_NOTES.md`](docs/DEVELOPER_NOTES.md) for session lifecycle, latency, permissions, and recovery details.
+### Frontend flow
+- [ ] Invalid input is blocked before the request.
+- [ ] The UI shows connecting/working/completed/error states.
+- [ ] Tool cards move from waiting to running to complete.
+- [ ] Model text appears progressively.
+- [ ] Stop run cancels the browser request.
+- [ ] Copy copies the complete plan.
+
+### End-to-end
+- [ ] `OPENAI_API_KEY` is present only on the server.
+- [ ] `npm run verify:e2e` receives a tool event.
+- [ ] `npm run verify:e2e` receives a model text delta.
+- [ ] The stream emits exactly one terminal event.
+- [ ] Agents traces appear in the OpenAI dashboard when tracing is enabled.
