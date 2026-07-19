@@ -1,66 +1,72 @@
-# Campaign Concept Studio
+# Launch Desk
 
-Campaign Concept Studio is a full-stack marketing workspace that turns a short brief into a structured campaign platform, three copy routes, a prioritized launch checklist, two image prompts, and generated campaign key art.
-
-It uses the current OpenAI **Responses API** for both stages:
-
-1. `responses.parse()` creates a strict, typed campaign plan.
-2. `responses.create()` invokes the built-in `image_generation` tool for each visual direction.
-
-No legacy Completions, Chat Completions, Assistants API, or browser-side OpenAI calls are used.
+Launch Desk is a full-stack engineering launch-planning agent. A team supplies a rough product brief, audience, launch date, constraints, assets, tone, and channels. The agent calls deterministic planning tools, then streams an actionable release recommendation.
 
 ## Output
 
-- Concise campaign concept and strategic rationale
-- Exactly three headline, body, and CTA variants
-- Prioritized launch checklist with phases and owner roles
-- Two production-oriented image prompts
-- Two generated campaign images by default
-- Explicit assumptions when the brief lacks proof points or decisions
+- Release posture: go, conditional go, delay, or phased launch
+- Prioritized P0/P1/P2 plan
+- Risk register with likelihood, impact, mitigation, and triggers
+- Role-based owner checklist
+- Channel-specific launch copy suggestions
+- Follow-up questions when critical inputs are missing
 
-## Architecture
+## OpenAI architecture
 
-### Browser
+Launch Desk uses the current JavaScript/TypeScript **OpenAI Agents SDK** (`@openai/agents`) and the OpenAI Responses provider.
 
-- Collects campaign brief, audience, product details, tone, and channel selections.
-- Calls `POST /api/concept` and renders the structured plan.
-- Calls `POST /api/images` only after the plan succeeds.
-- Shows empty, strategy-loading, image-loading, partial-success, error, and completed states.
-- Keeps generated image data in the current browser session and supports image download.
-- Never receives `OPENAI_API_KEY` and never imports the OpenAI SDK.
+- `Agent` defines instructions, model settings, and function tools.
+- A process-level `Runner` is reused across requests.
+- `Runner.run(..., { stream: true })` supplies run-item events and raw Responses text deltas.
+- Four function tools use strict Zod schemas.
+- Agents SDK tracing is enabled by default in Node unless `OPENAI_AGENTS_DISABLE_TRACING=1`.
+- No Assistants API, legacy Completions, or Chat Completions scaffolding is used.
 
-### Server
-
-- Validates every request with Zod.
-- Creates the campaign plan with `openai.responses.parse()` and `zodTextFormat`.
-- Generates images with `openai.responses.create()` and the Responses `image_generation` tool.
-- Uses `store: false` for both stages.
-- Normalizes upstream failures into safe application errors.
-- Allows strategy to remain usable if image generation fails or is rate-limited.
+The default model is `gpt-5.6-terra`, balancing quality and cost. Evaluate `gpt-5.6-sol` for high-stakes launch reviews or `gpt-5.6-luna` for bounded high-volume planning.
 
 ## Project structure
 
 ```text
-api/concept.js                 Structured campaign plan endpoint
-api/images.js                  Responses image-tool endpoint
-src/campaign/config.js         Model and image settings
-src/campaign/schemas.js        Input and structured-output schemas
-src/campaign/prompts.js        Strategy and image prompt construction
-src/campaign/openai.js         Server-only OpenAI SDK integration
-src/server/errors.js           Safe JSON and error mapping
-index.html                     Application shell
-app.js                         Progressive client flow and rendering
-styles.css                     Responsive production UI
-tests/                         Validation, schema, and image extraction tests
-scripts/verify-sdk.mjs         SDK and schema construction smoke check
-docs/DEVELOPER_NOTES.md        Extension, operations, and tuning notes
+api/agent.js                  Streaming agent API route
+api/health.js                 Configuration-safe health route
+src/agent/config.js           Model, reasoning, and tracing settings
+src/agent/launch-agent.js     Agent instructions and process-level Runner
+src/agent/tools.js            Agents SDK function tools
+src/agent/stream.js           SDK event to public NDJSON adapter
+src/core/planning.js          Deterministic planning and rubric logic
+src/core/schemas.js           Request validation and channel contract
+src/server/http.js            HTTP, streaming, and error helpers
+src/server/local.js           Local frontend and API server
+index.html                    Frontend shell
+app.js                        Form, stream reader, and progressive UI
+styles.css                    Responsive production styling
+tests/                        Schema, planning, and stream adapter tests
+scripts/verify-sdk.mjs        Agent and tool construction smoke test
+scripts/verify-stream.mjs     Real streamed endpoint verification
+docs/DEVELOPER_NOTES.md       Extension, handoff, tracing, and event notes
 ```
+
+## Client/server boundary
+
+### Browser
+
+- Collects launch inputs.
+- Calls only same-origin `/api/agent`.
+- Reads newline-delimited JSON progressively.
+- Renders tool progress and model text deltas.
+- Never imports the OpenAI SDK and never receives `OPENAI_API_KEY`.
+
+### Server
+
+- Validates every request with Zod.
+- Owns the Agents SDK, model configuration, tools, tracing, and API key.
+- Streams normalized progress events instead of raw provider payloads.
+- Excludes sensitive inputs and outputs from trace payloads while retaining spans.
 
 ## Requirements
 
-- Node.js 20 or newer
-- An OpenAI API project with access to the configured text model and image generation tool
-- Image generation may require organization verification in the OpenAI developer console
+- Node.js 20–22
+- An OpenAI API project with access to the configured model
 
 ## Local setup
 
@@ -69,24 +75,45 @@ npm install
 cp .env.example .env.local
 ```
 
-Set the server-side key in `.env.local`:
+Set the server-side key:
 
 ```env
-OPENAI_API_KEY=your_server_side_openai_key
-OPENAI_TEXT_MODEL=gpt-5.6-terra
-OPENAI_IMAGE_MODEL=gpt-5.6-terra
-CAMPAIGN_IMAGE_COUNT=2
-CAMPAIGN_IMAGE_QUALITY=low
-CAMPAIGN_IMAGE_SIZE=1024x1024
+OPENAI_API_KEY=sk-...
+OPENAI_AGENT_MODEL=gpt-5.6-terra
+OPENAI_AGENT_REASONING_EFFORT=low
+OPENAI_AGENTS_DISABLE_TRACING=0
 ```
 
-Start the static frontend and serverless API routes together:
+Do not use `VITE_`, `NEXT_PUBLIC_`, or another browser-facing variable name for the API key.
+
+Start the built-in Node server, which serves the frontend and API routes in one process:
 
 ```bash
 npm run dev
 ```
 
-Open the localhost URL printed by Vercel Dev.
+Open `http://127.0.0.1:3000`. The server loads `.env.local` before importing the agent configuration.
+
+## Required real stream verification
+
+With the server running in a process that has `OPENAI_API_KEY`, run:
+
+```bash
+npm run verify:e2e
+```
+
+The verifier posts a realistic brief to `http://localhost:3000/api/agent`, drains the NDJSON stream, and fails unless it receives both:
+
+1. at least one tool progress or result event; and
+2. at least one model text delta.
+
+To verify another environment:
+
+```bash
+LAUNCH_DESK_URL=https://your-host/api/agent npm run verify:e2e
+```
+
+A health check, frontend load, syntax pass, or unit tests are not substitutes for this verification.
 
 ## Commands
 
@@ -94,63 +121,64 @@ Open the localhost URL printed by Vercel Dev.
 npm test
 npm run check
 npm run build
+npm run verify:e2e
 ```
-
-`npm run check` validates browser and server syntax, executes the test suite, and verifies that the current OpenAI SDK helpers can construct the Responses request schema.
 
 ## Deployment
 
 The repository is configured for Vercel:
 
-1. Import the repository as a Vercel project.
-2. Add `OPENAI_API_KEY` to the Production and Preview environments.
-3. Optionally add the model and image-setting variables shown above.
-4. Deploy. The build copies the static frontend into `public/` and deploys both API routes as Node.js functions.
+1. Import the repository.
+2. Add `OPENAI_API_KEY` to Preview and Production.
+3. Optionally configure model, reasoning effort, and tracing variables.
+4. Deploy.
+5. Run the streamed verifier against the deployed `/api/agent` endpoint.
 
-Do not prefix the API key with `VITE_`, `NEXT_PUBLIC_`, or any other public environment-variable convention.
+The agent route allows up to 120 seconds for multi-turn tool execution and streaming.
 
-## Configuration and tuning
+## Extension points
 
-- **Text model:** `OPENAI_TEXT_MODEL` in `src/campaign/config.js`
-- **Image orchestration model:** `OPENAI_IMAGE_MODEL` in `src/campaign/config.js`
-- **Strategy prompt:** `CAMPAIGN_SYSTEM_PROMPT` in `src/campaign/prompts.js`
-- **Output contract:** `campaignPlanSchema` in `src/campaign/schemas.js`
-- **Image prompt wrapper:** `formatImagePrompt()` in `src/campaign/prompts.js`
-- **Image count:** `CAMPAIGN_IMAGE_COUNT`, clamped from 1 to 3
-- **Image quality:** `CAMPAIGN_IMAGE_QUALITY` (`low`, `medium`, `high`, or `auto`)
-- **Image size:** `CAMPAIGN_IMAGE_SIZE` (`1024x1024`, `1536x1024`, `1024x1536`, or `auto`)
-
-The default text and image orchestration model is `gpt-5.6-terra` for a balance of quality and cost. Evaluate `gpt-5.6-sol` for high-stakes strategic work and `gpt-5.6-luna` for high-volume, bounded generation before changing production routing.
-
-The Responses image-generation tool selects the underlying GPT Image model. If the product later needs direct single-image generation controls or image editing outside a conversational flow, evaluate the standalone Image API with `gpt-image-2` separately.
+- **Model:** `OPENAI_AGENT_MODEL` or `src/agent/config.js`
+- **Reasoning:** `OPENAI_AGENT_REASONING_EFFORT`
+- **Instructions/output contract:** `src/agent/launch-agent.js`
+- **Tools:** `src/agent/tools.js`
+- **Rubric and task logic:** `src/core/planning.js`
+- **Streaming protocol:** `src/agent/stream.js`
+- **Handoffs:** add specialist agents and register them in `launch-agent.js`
+- **UI:** `app.js` and `styles.css`
 
 ## Validation checklist
 
-### Local
+### Agent behavior
 
-- [ ] `npm install` completes on Node.js 20+.
-- [ ] `npm run check` passes.
-- [ ] `npm run dev` serves the frontend and both API routes.
-- [ ] A missing `OPENAI_API_KEY` returns `server_not_configured` without exposing secrets.
-- [ ] A valid brief returns one concept, three copy variants, 6–12 checklist items, and two image directions.
-- [ ] Strategy renders before image generation completes.
-- [ ] At least one generated image is displayed and downloadable.
-- [ ] Image failure leaves the strategy and image prompts visible.
-- [ ] Cancel stops the active browser request.
+- [ ] Calls at least one tool and normally calls all four tools.
+- [ ] Produces every required final section.
+- [ ] Does not invent proof, named owners, or readiness evidence.
+- [ ] Marks missing details and asks targeted follow-up questions.
+- [ ] Connects P0 work to owners and completion signals.
+- [ ] Recommends a posture consistent with readiness evidence.
 
-### Quality
+### Tool outputs
 
-- [ ] Copy variants use materially different strategic angles.
-- [ ] Claims do not exceed supplied product evidence.
-- [ ] Requested channels influence the concept and checklist.
-- [ ] Image directions match the concept, audience, and tone.
-- [ ] Generated images avoid logos, watermarks, unsupported UI, and legible marketing copy.
-- [ ] Checklist items have useful priorities, phases, and owner roles.
+- [ ] Task extraction returns a bounded P0/P1/P2 list.
+- [ ] Readiness returns a score, posture, blockers, gaps, and days remaining.
+- [ ] Owner checklist returns role groups with operational items.
+- [ ] Copy tool returns one brief per selected channel.
+- [ ] Tool logic is deterministic and unit-testable without OpenAI.
 
-### Deployment
+### Frontend and streaming
 
-- [ ] `OPENAI_API_KEY` exists in Preview and Production.
-- [ ] `/api/concept` and `/api/images` reject GET with HTTP 405.
-- [ ] Production CSP permits same-origin API calls and `data:` images.
-- [ ] Image response size remains within the hosting platform limit.
-- [ ] Rate-limit and organization-verification errors produce useful UI messages.
+- [ ] Empty, active, completed, cancelled, and error states render correctly.
+- [ ] Tool cards update before the final answer completes.
+- [ ] Text appears incrementally.
+- [ ] Copy plan works after completion.
+- [ ] Mobile layout remains usable.
+- [ ] `npm run verify:e2e` observes a tool event and text delta.
+
+### Operations
+
+- [ ] `OPENAI_API_KEY` is server-side in every target environment.
+- [ ] Traces appear under `Launch Desk planning` when enabled.
+- [ ] GET `/api/agent` returns 405.
+- [ ] Rate-limit and authentication failures are safe and useful.
+- [ ] Production streaming is not buffered by a proxy or CDN.

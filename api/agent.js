@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   beginNdjson(res);
   const write = (event) => {
     if (res.writableEnded || res.destroyed) return;
-    if (event.type === "tool_progress") sawToolEvent = true;
+    if (event.type === "tool_progress" || event.type === "tool_result") sawToolEvent = true;
     if (event.type === "text_delta" && event.delta) sawTextDelta = true;
     res.write(encodeEvent({ requestId, timestamp: new Date().toISOString(), ...event }));
   };

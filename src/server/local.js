@@ -2,8 +2,6 @@ import { createServer } from "node:http";
 import { existsSync, readFileSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
-import agentHandler from "../../api/agent.js";
-import healthHandler from "../../api/health.js";
 import { sendJson } from "./http.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -21,6 +19,11 @@ function loadLocalEnv() {
 }
 
 loadLocalEnv();
+
+const [{ default: agentHandler }, { default: healthHandler }] = await Promise.all([
+  import("../../api/agent.js"),
+  import("../../api/health.js")
+]);
 
 const mime = {
   ".html": "text/html; charset=utf-8",
