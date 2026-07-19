@@ -8,7 +8,7 @@
     "dev": "vercel dev",
     "test": "node --test",
     "check": "node --check app.js && node --check api/agent.js && node --check src/agent/launch-agent.js && node --check src/agent/tools.js && node --check src/core/planning.js && node --test && node scripts/verify-sdk-import.mjs",
-    "build": "npm run check",
+    "build": "mkdir -p public && cp index.html app.js styles.css public/ && npm run check",
     "verify:e2e": "node scripts/verify-stream.mjs"
   },
   "dependencies": {
