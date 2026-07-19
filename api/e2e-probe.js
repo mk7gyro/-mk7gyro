@@ -50,11 +50,18 @@ export default async function handler(req, res) {
   const sawTool = events.some((event) => event.type === "tool.started" || event.type === "tool.completed");
   const sawText = events.some((event) => event.type === "text.delta" && event.data?.delta);
   const failed = events.find((event) => event.type === "run.failed");
+  let preStreamError = null;
+  if (!events.length && result.body) {
+    try { preStreamError = JSON.parse(result.body); } catch { preStreamError = { message: "non_json_pre_stream_response" }; }
+  }
+
   return res.status(sawTool && sawText ? 200 : 502).json({
     ok: sawTool && sawText,
     sawTool,
     sawText,
+    handlerStatus: result.statusCode,
     eventTypes: events.map((event) => event.type),
-    failure: failed?.data || null
+    failure: failed?.data || null,
+    preStreamError
   });
 }
