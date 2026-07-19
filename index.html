@@ -3,54 +3,168 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0b1020" />
-  <meta name="description" content="Launch Desk turns a rough product launch idea into a prioritized release plan." />
-  <title>Launch Desk — Ship with a plan</title>
+  <meta name="theme-color" content="#111019" />
+  <meta name="description" content="Campaign Concept Studio turns a marketing brief into a campaign platform, launch copy, checklist, and generated key art." />
+  <title>Campaign Concept Studio</title>
   <link rel="stylesheet" href="/styles.css" />
   <script type="module" src="/app.js"></script>
 </head>
 <body>
-  <div class="glow glow-a"></div><div class="glow glow-b"></div>
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
+
   <main class="shell">
     <header class="topbar">
-      <a class="brand" href="/" aria-label="Launch Desk home"><span class="brand-mark">LD</span><span>Launch Desk</span></a>
-      <div class="status-pill" id="statusPill" data-state="ready"><span></span><b id="statusText">Ready to plan</b></div>
+      <a class="brand" href="/" aria-label="Campaign Concept Studio home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>Campaign Concept Studio</span>
+      </a>
+      <div class="status-pill" id="statusPill" data-state="ready">
+        <span class="status-dot" aria-hidden="true"></span>
+        <strong id="statusText">Ready for a brief</strong>
+      </div>
     </header>
+
     <section class="hero">
-      <div><p class="eyebrow">Agent-powered launch planning</p><h1>Turn a rough launch idea into a release your team can run.</h1></div>
-      <p>Launch Desk calls focused planning tools, checks readiness, and streams an actionable plan while it works.</p>
+      <div>
+        <p class="eyebrow">Strategy, copy, and campaign art</p>
+        <h1>Find the idea.<br />Build the campaign.</h1>
+      </div>
+      <p>Turn a short marketing brief into a focused creative platform, channel-ready copy, a production checklist, and two generated visual directions.</p>
     </section>
+
     <section class="workspace">
-      <form class="intake card" id="launchForm">
-        <div class="section-heading"><div><p class="kicker">Launch intake</p><h2>Give the agent the operating context</h2></div><span>5 fields</span></div>
-        <label>Product brief<textarea id="brief" name="brief" required minlength="20" maxlength="8000" placeholder="What are you launching, why now, and what should change for users?"></textarea></label>
-        <div class="two-up">
-          <label>Primary audience<input id="audience" name="audience" required maxlength="4000" placeholder="e.g. platform engineers at mid-market SaaS teams" /></label>
-          <label>Target launch date<input id="launchDate" name="launchDate" type="date" /></label>
+      <form class="brief-card card" id="campaignForm">
+        <div class="card-heading">
+          <div><p class="kicker">Creative intake</p><h2>Frame the assignment</h2></div>
+          <button class="text-button" id="sampleButton" type="button">Load example</button>
         </div>
-        <label>Constraints<textarea id="constraints" name="constraints" maxlength="4000" placeholder="Security review, fixed event date, staffing limits, migration risk…"></textarea></label>
-        <label>Available assets<textarea id="assets" name="assets" maxlength="4000" placeholder="Demo, docs, beta quotes, screenshots, pricing page, support runbook…"></textarea></label>
-        <div class="form-actions"><button class="primary" id="runButton" type="submit"><span>Build launch plan</span><span aria-hidden="true">↗</span></button><button class="secondary" id="cancelButton" type="button" hidden>Stop run</button></div>
-        <p class="form-note">Plans stream from the server. Your OpenAI key never enters the browser.</p>
+
+        <label>
+          Campaign brief
+          <textarea id="brief" name="brief" required minlength="20" maxlength="4000" placeholder="What should this campaign accomplish, and why does it matter now?"></textarea>
+        </label>
+
+        <label>
+          Target audience
+          <input id="audience" name="audience" required maxlength="2000" placeholder="e.g. independent creative teams scaling from 5 to 30 people" />
+        </label>
+
+        <label>
+          Product details
+          <textarea id="productDetails" name="productDetails" required minlength="10" maxlength="4000" placeholder="What it is, the strongest proof points, differentiators, price or availability constraints…"></textarea>
+        </label>
+
+        <label>
+          Tone
+          <select id="tone" name="tone" required>
+            <option value="Confident, clear, and modern">Confident and modern</option>
+            <option value="Warm, human, and optimistic">Warm and optimistic</option>
+            <option value="Bold, provocative, and energetic">Bold and energetic</option>
+            <option value="Premium, restrained, and editorial">Premium and editorial</option>
+            <option value="Playful, clever, and conversational">Playful and clever</option>
+            <option value="Technical, credible, and direct">Technical and direct</option>
+          </select>
+        </label>
+
+        <fieldset>
+          <legend>Desired channels</legend>
+          <div class="channel-grid" id="channelGrid">
+            <label><input type="checkbox" name="channels" value="Landing page" checked /><span>Landing page</span></label>
+            <label><input type="checkbox" name="channels" value="Email" checked /><span>Email</span></label>
+            <label><input type="checkbox" name="channels" value="LinkedIn" checked /><span>LinkedIn</span></label>
+            <label><input type="checkbox" name="channels" value="Instagram" /><span>Instagram</span></label>
+            <label><input type="checkbox" name="channels" value="Paid social" /><span>Paid social</span></label>
+            <label><input type="checkbox" name="channels" value="In-product" /><span>In-product</span></label>
+            <label><input type="checkbox" name="channels" value="Sales enablement" /><span>Sales enablement</span></label>
+            <label><input type="checkbox" name="channels" value="Event" /><span>Event</span></label>
+          </div>
+        </fieldset>
+
+        <div class="form-actions">
+          <button class="primary-button" id="generateButton" type="submit"><span>Generate campaign</span><b aria-hidden="true">↗</b></button>
+          <button class="secondary-button" id="cancelButton" type="button" hidden>Cancel</button>
+        </div>
+        <p class="security-note">OpenAI requests run on the server. Your API key is never sent to the browser.</p>
       </form>
-      <section class="output card" aria-live="polite">
-        <div class="section-heading"><div><p class="kicker">Agent workspace</p><h2>Plan and execution trace</h2></div><button class="ghost" id="copyButton" type="button" disabled>Copy</button></div>
-        <div class="progress-strip" id="progressStrip">
-          <div class="progress-step" data-tool="extract_launch_tasks"><span>1</span><div><b>Tasks</b><small>Waiting</small></div></div>
-          <div class="progress-step" data-tool="check_launch_readiness"><span>2</span><div><b>Readiness</b><small>Waiting</small></div></div>
-          <div class="progress-step" data-tool="generate_owner_checklist"><span>3</span><div><b>Owners</b><small>Waiting</small></div></div>
-          <div class="progress-step" data-tool="draft_launch_copy"><span>4</span><div><b>Copy</b><small>Waiting</small></div></div>
+
+      <section class="studio-card card" aria-live="polite">
+        <div class="studio-header">
+          <div><p class="kicker">Campaign board</p><h2 id="boardTitle">Waiting for direction</h2></div>
+          <button class="copy-button" id="copyButton" type="button" disabled>Copy campaign</button>
         </div>
-        <div class="empty" id="emptyState"><div class="empty-icon">⌁</div><h3>Your release plan will appear here</h3><p>Complete the intake and Launch Desk will show tool progress before streaming the final plan.</p></div>
-        <pre class="plan" id="planOutput" tabindex="0"></pre><div class="run-meta" id="runMeta"></div>
+
+        <div class="progress-rail" id="progressRail" aria-label="Generation progress">
+          <div data-stage="strategy"><span>01</span><b>Strategy</b><small>Waiting</small></div>
+          <div data-stage="copy"><span>02</span><b>Copy</b><small>Waiting</small></div>
+          <div data-stage="art"><span>03</span><b>Key art</b><small>Waiting</small></div>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+          <div class="empty-mark" aria-hidden="true">✦</div>
+          <h3>A campaign platform will take shape here.</h3>
+          <p>Start with enough detail to distinguish the product, audience, and desired market impression.</p>
+        </div>
+
+        <div class="loading-state" id="loadingState" hidden>
+          <div class="loading-orbit" aria-hidden="true"><span></span></div>
+          <h3 id="loadingTitle">Finding the strategic angle</h3>
+          <p id="loadingDescription">Synthesizing the brief into a campaign platform and channel system.</p>
+        </div>
+
+        <div class="error-state" id="errorState" hidden>
+          <div class="error-icon" aria-hidden="true">!</div>
+          <h3>Generation stopped</h3>
+          <p id="errorMessage"></p>
+          <button class="secondary-button" id="retryButton" type="button">Try again</button>
+        </div>
+
+        <div class="results" id="results" hidden>
+          <article class="concept-panel">
+            <p class="concept-label">Campaign concept</p>
+            <h2 id="conceptName"></h2>
+            <p class="concept-line" id="conceptLine"></p>
+            <div class="concept-grid">
+              <div><span>Big idea</span><p id="bigIdea"></p></div>
+              <div><span>Audience insight</span><p id="audienceInsight"></p></div>
+              <div><span>Key message</span><p id="keyMessage"></p></div>
+              <div><span>Visual direction</span><p id="visualDirection"></p></div>
+            </div>
+          </article>
+
+          <section class="result-section">
+            <div class="section-title"><span>01</span><div><p>Message system</p><h3>Three creative routes</h3></div></div>
+            <div class="copy-grid" id="copyGrid"></div>
+          </section>
+
+          <section class="result-section">
+            <div class="section-title"><span>02</span><div><p>Production</p><h3>Launch checklist</h3></div></div>
+            <div class="checklist" id="checklist"></div>
+          </section>
+
+          <section class="result-section visual-section">
+            <div class="section-title"><span>03</span><div><p>Art direction</p><h3>Generated campaign worlds</h3></div></div>
+            <div class="image-grid" id="imageGrid"></div>
+            <div class="image-warning" id="imageWarning" hidden></div>
+          </section>
+
+          <section class="assumptions" id="assumptionsSection" hidden>
+            <h3>Working assumptions</h3>
+            <ul id="assumptionsList"></ul>
+          </section>
+
+          <p class="result-meta" id="resultMeta"></p>
+        </div>
       </section>
     </section>
-    <section class="principles">
-      <article><span>01</span><h3>Evidence before prose</h3><p>Focused tools extract tasks, score readiness, assign owners, and draft copy.</p></article>
-      <article><span>02</span><h3>Progress you can see</h3><p>SSE events expose tool execution and model text without leaking SDK internals.</p></article>
-      <article><span>03</span><h3>Built for go/no-go</h3><p>Every plan emphasizes blockers, rollback, observability, support, and measurable outcomes.</p></article>
+
+    <section class="feature-strip" aria-label="Studio features">
+      <article><span>Structured</span><h3>Consistent campaign outputs</h3><p>A strict response schema keeps concepts, copy, checklists, and art directions predictable.</p></article>
+      <article><span>Progressive</span><h3>Strategy before rendering</h3><p>The written platform appears first; visual generation continues as a separate stage.</p></article>
+      <article><span>Server-side</span><h3>Credentials stay private</h3><p>The browser only talks to application routes and never receives the OpenAI API key.</p></article>
     </section>
   </main>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
