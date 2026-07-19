@@ -19,37 +19,30 @@ function loadLocalEnv() {
 }
 
 loadLocalEnv();
-
-const [{ default: agentHandler }, { default: healthHandler }] = await Promise.all([
-  import("../../api/agent.js"),
+const [{ default: sessionHandler }, { default: healthHandler }] = await Promise.all([
+  import("../../api/session.js"),
   import("../../api/health.js")
 ]);
 
-const mime = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".svg": "image/svg+xml"
-};
+const mime = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8" };
 
 async function readJson(req) {
   const chunks = [];
   let bytes = 0;
   for await (const chunk of req) {
     bytes += chunk.length;
-    if (bytes > 1_000_000) throw new Error("Request body is too large.");
+    if (bytes > 200_000) throw new Error("Request body is too large.");
     chunks.push(chunk);
   }
-  if (!chunks.length) return {};
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  return chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : {};
 }
 
-function serveStatic(req, res, pathname) {
+function serveStatic(res, pathname) {
   const requested = pathname === "/" ? "index.html" : pathname.replace(/^\//, "");
   const safe = normalize(requested).replace(/^(\.\.(\/|\\|$))+/, "");
   if (!["index.html", "app.js", "styles.css"].includes(safe)) return false;
-  const file = join(root, safe);
+  const base = existsSync(join(root, "public", safe)) ? join(root, "public") : root;
+  const file = join(base, safe);
   if (!existsSync(file)) return false;
   res.statusCode = 200;
   res.setHeader("Content-Type", mime[extname(file)] || "application/octet-stream");
@@ -58,24 +51,22 @@ function serveStatic(req, res, pathname) {
   return true;
 }
 
-const server = createServer(async (req, res) => {
-  const url = new URL(req.url || "/", `http://${req.headers.host || `localhost:${port}`}`);
+createServer(async (req, res) => {
+  const url = new URL(req.url || "/", `http://${req.headers.host || `127.0.0.1:${port}`}`);
   try {
-    if (url.pathname === "/api/agent") {
+    if (url.pathname === "/api/session") {
       if (req.method === "POST") req.body = await readJson(req);
-      return agentHandler(req, res);
+      return sessionHandler(req, res);
     }
     if (url.pathname === "/api/health") return healthHandler(req, res);
-    if (serveStatic(req, res, url.pathname)) return;
+    if (serveStatic(res, url.pathname)) return;
     return sendJson(res, 404, { error: "not_found", message: "Route not found." });
   } catch (error) {
-    console.error("Local server request failed", error);
+    console.error("Local request failed", error);
     if (!res.headersSent) return sendJson(res, 400, { error: "bad_request", message: error.message });
     if (!res.writableEnded) res.end();
   }
-});
-
-server.listen(port, "127.0.0.1", () => {
-  console.log(`Launch Desk local server: http://127.0.0.1:${port}`);
+}).listen(port, "127.0.0.1", () => {
+  console.log(`World Room local server: http://127.0.0.1:${port}`);
   console.log(`OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? "configured" : "missing"}`);
 });

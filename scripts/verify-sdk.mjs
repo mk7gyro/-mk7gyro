@@ -1,7 +1,28 @@
-import { launchAgent, launchRunner } from "../src/agent/launch-agent.js";
-import { AGENT_MODEL } from "../src/agent/config.js";
+import { RealtimeAgent, RealtimeSession } from "@openai/agents/realtime";
 
-if (!launchAgent || !launchRunner) throw new Error("Agent or runner did not initialize.");
-if (launchAgent.tools.length !== 4) throw new Error(`Expected 4 tools, found ${launchAgent.tools.length}.`);
-if (!launchAgent.tools.every((tool) => tool.type === "function")) throw new Error("All Launch Desk tools must be function tools.");
-console.log(`Agents SDK ready: model=${AGENT_MODEL}, tools=${launchAgent.tools.map((tool) => tool.name).join(",")}`);
+const agent = new RealtimeAgent({
+  name: "World Room verification",
+  voice: "marin",
+  instructions: "Help the user invent a fictional world in concise spoken turns."
+});
+const session = new RealtimeSession(agent, {
+  model: "gpt-realtime-2.1",
+  tracingDisabled: true,
+  config: {
+    outputModalities: ["audio"],
+    reasoning: { effort: "low" },
+    audio: {
+      input: {
+        transcription: { model: "gpt-realtime-whisper" },
+        turnDetection: { type: "semantic_vad", eagerness: "medium", createResponse: true, interruptResponse: true }
+      },
+      output: { voice: "marin" }
+    }
+  }
+});
+
+if (typeof session.connect !== "function" || typeof session.mute !== "function" || typeof session.interrupt !== "function" || typeof session.close !== "function") {
+  throw new Error("The installed Agents SDK does not expose the expected RealtimeSession browser lifecycle.");
+}
+console.log("Realtime SDK ready: model=gpt-realtime-2.1, transport=browser WebRTC, voice=marin");
+session.close();

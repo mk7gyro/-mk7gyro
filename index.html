@@ -3,127 +3,55 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#071019" />
-  <meta name="description" content="Launch Desk turns a rough product launch idea into an actionable engineering release plan." />
-  <title>Launch Desk</title>
+  <meta name="theme-color" content="#090817" />
+  <meta name="description" content="World Room is a live realtime voice companion for inventing settings, characters, conflicts, and scene hooks." />
+  <title>World Room</title>
   <link rel="stylesheet" href="/styles.css" />
   <script type="module" src="/app.js"></script>
 </head>
-<body>
-  <div class="noise" aria-hidden="true"></div>
+<body data-session="idle">
+  <div class="aurora aurora-one" aria-hidden="true"></div>
+  <div class="aurora aurora-two" aria-hidden="true"></div>
   <main class="shell">
     <header class="topbar">
-      <a class="brand" href="/" aria-label="Launch Desk home">
-        <span class="brand-icon" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span>Launch Desk</span>
-      </a>
-      <div class="run-status" id="runStatus" data-state="idle"><span></span><strong id="runStatusText">Ready</strong></div>
+      <a class="brand" href="/" aria-label="World Room home"><span class="brand-mark">✦</span><span>World Room</span></a>
+      <div class="session-status" id="sessionStatus" data-state="idle"><i></i><strong id="sessionStatusText">Ready to open</strong></div>
     </header>
 
     <section class="hero">
-      <div>
-        <p class="eyebrow">Engineering release planning agent</p>
-        <h1>Turn a rough launch<br />into a release system.</h1>
-      </div>
-      <p>Launch Desk inspects scope, readiness, ownership, risk, and channel execution—then streams an actionable plan your team can operate.</p>
+      <div><p class="eyebrow">A live room for imaginary worlds</p><h1>Say it aloud.<br />Watch a world answer.</h1></div>
+      <p>Speak with a playful realtime companion that remembers your canon, follows interruptions, and helps uncover places, people, conflicts, and scene hooks.</p>
     </section>
 
     <section class="workspace">
-      <form class="intake panel" id="launchForm">
-        <div class="panel-heading">
-          <div><span>01 / Intake</span><h2>Define the launch</h2></div>
-          <button class="text-button" id="sampleButton" type="button">Load example</button>
-        </div>
-
-        <label>Product brief
-          <textarea id="productBrief" required minlength="30" maxlength="5000" placeholder="What is shipping, what problem does it solve, and what is in or out of scope?"></textarea>
-        </label>
-
+      <form class="setup panel" id="worldForm">
+        <div class="panel-heading"><div><span>Before the door opens</span><h2>Set the first spark</h2></div><button class="text-button" id="sampleButton" type="button">Load example</button></div>
+        <label>World seed<textarea id="worldSeed" required minlength="8" maxlength="1200" placeholder="A city beneath a sleeping moon, a kingdom built inside a storm, a quiet village with one impossible rule…"></textarea></label>
         <div class="field-grid">
-          <label>Audience
-            <input id="audience" required maxlength="2000" placeholder="e.g. platform engineers at B2B SaaS teams" />
-          </label>
-          <label>Launch date
-            <input id="launchDate" type="date" required />
-          </label>
+          <label>Creative mode<select id="style"><option>Mythic and luminous</option><option>Strange science fiction</option><option>Cozy and uncanny</option><option>Dark folklore</option><option>Swashbuckling adventure</option><option>Dreamlike mystery</option></select></label>
+          <label>Companion voice<select id="voice"><option value="marin">Marin</option><option value="cedar">Cedar</option><option value="coral">Coral</option><option value="sage">Sage</option><option value="shimmer">Shimmer</option><option value="verse">Verse</option></select></label>
         </div>
-
-        <label>Constraints
-          <textarea id="constraints" maxlength="4000" placeholder="Dependencies, compliance reviews, staffing, rollout limits, deadlines, or known risks"></textarea>
-        </label>
-
-        <label>Available assets
-          <textarea id="availableAssets" maxlength="4000" placeholder="Docs, beta feedback, demo, screenshots, runbook, release notes, dashboards, approved copy"></textarea>
-        </label>
-
-        <label>Tone
-          <select id="tone">
-            <option>Clear, credible, and direct</option>
-            <option>Technical, precise, and restrained</option>
-            <option>Confident, concise, and modern</option>
-            <option>Warm, practical, and customer-focused</option>
-          </select>
-        </label>
-
-        <fieldset>
-          <legend>Launch channels</legend>
-          <div class="channel-grid">
-            <label><input type="checkbox" name="channels" value="Release notes" checked /><span>Release notes</span></label>
-            <label><input type="checkbox" name="channels" value="Email" checked /><span>Email</span></label>
-            <label><input type="checkbox" name="channels" value="LinkedIn" checked /><span>LinkedIn</span></label>
-            <label><input type="checkbox" name="channels" value="X / Twitter" /><span>X / Twitter</span></label>
-            <label><input type="checkbox" name="channels" value="In-app" /><span>In-app</span></label>
-            <label><input type="checkbox" name="channels" value="Developer community" /><span>Developer community</span></label>
-            <label><input type="checkbox" name="channels" value="Docs" checked /><span>Docs</span></label>
-            <label><input type="checkbox" name="channels" value="Product Hunt" /><span>Product Hunt</span></label>
-          </div>
-        </fieldset>
-
-        <div class="form-actions">
-          <button class="primary-button" id="runButton" type="submit"><span>Build launch plan</span><b>→</b></button>
-          <button class="secondary-button" id="cancelButton" type="button" hidden>Cancel run</button>
-        </div>
-        <p class="security-note">The browser calls your server route. The OpenAI API key and Agents SDK stay server-side.</p>
+        <div class="primary-actions"><button class="start-button" id="startButton" type="submit"><span>Open World Room</span><b>↗</b></button><button class="end-button" id="endButton" type="button" hidden>Close session</button></div>
+        <p class="privacy-note">Your browser handles microphone capture and audio playback over WebRTC. Your server only mints a short-lived client token; the permanent API key never enters the browser.</p>
       </form>
 
-      <section class="desk panel" aria-live="polite">
-        <div class="desk-heading">
-          <div><span>02 / Agent run</span><h2 id="deskTitle">Launch brief pending</h2></div>
-          <button class="copy-button" id="copyButton" type="button" disabled>Copy plan</button>
+      <section class="room panel" aria-live="polite">
+        <div class="room-top"><div><span>Live chamber</span><h2>Voice session</h2></div><small id="sessionMeta">Not connected</small></div>
+        <div class="voice-stage">
+          <div class="orbit orbit-a" aria-hidden="true"></div><div class="orbit orbit-b" aria-hidden="true"></div>
+          <button class="voice-orb" id="voiceOrb" data-state="idle" type="button" disabled aria-label="Voice state indicator"><span class="orb-core"><i></i><i></i><i></i><i></i><i></i></span><strong id="orbLabel">Open the room</strong></button>
         </div>
-
-        <div class="tool-rail" id="toolRail">
-          <article data-tool="extract_launch_tasks"><span>1</span><div><strong>Task extraction</strong><small>Waiting</small></div></article>
-          <article data-tool="check_launch_readiness"><span>2</span><div><strong>Readiness rubric</strong><small>Waiting</small></div></article>
-          <article data-tool="generate_owner_checklists"><span>3</span><div><strong>Owner map</strong><small>Waiting</small></div></article>
-          <article data-tool="draft_channel_copy"><span>4</span><div><strong>Channel copy</strong><small>Waiting</small></div></article>
+        <div class="voice-controls">
+          <button id="micButton" class="control-button" type="button" disabled aria-pressed="false"><span>●</span><strong>Microphone</strong></button>
+          <button id="interruptButton" class="control-button" type="button" disabled><span>↯</span><strong>Interrupt</strong></button>
         </div>
-
-        <div class="empty-state" id="emptyState">
-          <div class="radar" aria-hidden="true"><i></i></div>
-          <h3>Your release plan will stream here.</h3>
-          <p>Launch Desk will call planning tools, surface their progress, and then write the final recommendation token by token.</p>
-        </div>
-
-        <div class="error-state" id="errorState" hidden>
-          <span>!</span><h3>Agent run stopped</h3><p id="errorMessage"></p>
-          <button class="secondary-button" id="retryButton" type="button">Retry</button>
-        </div>
-
-        <div class="output" id="output" hidden>
-          <div class="live-indicator" id="liveIndicator"><span></span><strong>Streaming plan</strong><small id="eventCount">0 events</small></div>
-          <article class="markdown" id="markdownOutput"></article>
-          <footer class="result-footer"><span id="resultMeta"></span><span id="verificationBadge"></span></footer>
-        </div>
+        <div class="sparks" aria-label="Creative prompts"><button type="button" data-spark="Introduce one memorable character who belongs in this world and give me a decision about them.">A character</button><button type="button" data-spark="Reveal a conflict already moving beneath the surface, then ask which side interests me.">A conflict</button><button type="button" data-spark="Give me a scene hook that could begin tonight, grounded in our established canon.">A scene hook</button><button type="button" data-spark="Add one strange sensory detail that changes how this place feels, then let me decide why it exists.">A strange detail</button></div>
+        <div class="error-panel" id="errorPanel" hidden><strong>Passage interrupted</strong><p id="errorText"></p></div>
+        <section class="transcript-shell"><div class="transcript-heading"><span>Live transcript</span><small>Transcription can arrive after speech begins</small></div><div class="empty-transcript" id="emptyTranscript"><p>Your spoken story will gather here after the session opens.</p></div><div class="transcript" id="transcript"></div></section>
       </section>
     </section>
 
-    <section class="feature-strip">
-      <article><span>TOOLS</span><h3>Operational, not ornamental</h3><p>Deterministic tools extract work, score readiness, assign role checklists, and frame channel copy.</p></article>
-      <article><span>STREAMING</span><h3>Progress before prose</h3><p>The UI receives tool lifecycle events and model text deltas over one NDJSON response.</p></article>
-      <article><span>TRACING</span><h3>Observable by default</h3><p>Agents SDK tracing is enabled in server runtimes, while request IDs remain visible in application logs.</p></article>
-    </section>
+    <section class="feature-strip"><article><span>WEBRTC</span><h3>Speech in, speech out</h3><p>The browser uses OpenAI's low-latency realtime transport instead of a stitched text and TTS loop.</p></article><article><span>SEMANTIC VAD</span><h3>Natural turns and interruption</h3><p>The room listens for meaning, lets you cut in, and resumes from the latest direction.</p></article><article><span>EPHEMERAL ACCESS</span><h3>The permanent key stays server-side</h3><p>Every browser connection starts with a fresh short-lived client secret from your own API route.</p></article></section>
   </main>
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>

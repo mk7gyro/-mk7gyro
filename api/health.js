@@ -1,4 +1,4 @@
-import { AGENT_MODEL, REASONING_EFFORT, TRACING_DISABLED } from "../src/agent/config.js";
+import { DEFAULT_VOICE, REALTIME_MODEL, TRANSCRIPTION_MODEL } from "../src/realtime/config.js";
 import { sendJson } from "../src/server/http.js";
 
 export default function handler(req, res) {
@@ -8,11 +8,11 @@ export default function handler(req, res) {
   }
   return sendJson(res, 200, {
     ok: true,
-    app: "launch-desk",
-    sdk: "@openai/agents",
-    model: AGENT_MODEL,
-    reasoningEffort: REASONING_EFFORT,
-    tracing: TRACING_DISABLED ? "disabled" : "enabled",
+    app: "world-room",
+    transport: "WebRTC",
+    model: REALTIME_MODEL,
+    transcriptionModel: TRANSCRIPTION_MODEL,
+    defaultVoice: DEFAULT_VOICE,
     apiKeyConfigured: Boolean(process.env.OPENAI_API_KEY)
   });
 }

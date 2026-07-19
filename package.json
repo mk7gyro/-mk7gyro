@@ -1,21 +1,24 @@
 {
-  "name": "launch-desk",
+  "name": "world-room",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "A full-stack engineering launch-planning agent built with the OpenAI Agents SDK.",
+  "description": "A realtime speech-to-speech worldbuilding companion built with the OpenAI Realtime API.",
   "scripts": {
-    "dev": "node src/server/local.js",
+    "dev": "mkdir -p public && cp index.html styles.css public/ && npm run build:client && node src/server/local.js",
     "test": "node --test",
-    "check": "node --check app.js && node --check api/agent.js && node --check api/health.js && node --check src/agent/config.js && node --check src/agent/launch-agent.js && node --check src/agent/tools.js && node --check src/agent/stream.js && node --check src/core/planning.js && node --check src/core/schemas.js && node --check src/server/http.js && node --check src/server/local.js && node --test && node scripts/verify-sdk.mjs",
-    "build": "rm -rf public && mkdir -p public && cp index.html app.js styles.css public/ && npm run check",
-    "verify:e2e": "node scripts/verify-stream.mjs"
+    "check": "node --check api/session.js && node --check api/health.js && node --check src/realtime/config.js && node --check src/realtime/instructions.js && node --check src/realtime/session-token.js && node --check src/server/http.js && node --check src/server/local.js && node --check src/client/main.js && node --test && node scripts/verify-sdk.mjs",
+    "build:client": "esbuild src/client/main.js --bundle --format=esm --platform=browser --target=es2022 --outfile=public/app.js",
+    "build": "rm -rf public && mkdir -p public && cp index.html styles.css public/ && npm run build:client && npm run check",
+    "verify:session": "node scripts/verify-session.mjs"
   },
   "dependencies": {
     "@openai/agents": "0.13.5",
     "zod": "^4.0.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  },
   "engines": {
     "node": ">=20 <23"
   }
