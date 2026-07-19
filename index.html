@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#100d24" />
+    <meta
+      name="description"
+      content="World Room is a realtime voice-first companion for inventing fictional settings, characters, conflicts, and scene hooks."
+    />
+    <title>World Room — Realtime worldbuilding</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="World Room home">
+          <span class="brand-mark" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+          <span>World Room</span>
+        </a>
+        <div class="connection-pill" id="connectionPill" data-state="offline">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="connectionLabel">Room closed</span>
+        </div>
+      </header>
+
+      <section class="hero" aria-labelledby="heroTitle">
+        <p class="eyebrow">Realtime voice worldbuilding</p>
+        <h1 id="heroTitle">Say one strange thing.<br />Build a world around it.</h1>
+        <p class="lede">
+          A live creative companion for places, people, impossible conflicts,
+          and the scene that starts everything.
+        </p>
+      </section>
+
+      <section class="room-grid">
+        <div class="voice-stage card" id="voiceStage" data-state="offline">
+          <div class="session-meta">
+            <span id="sessionTimer">00:00</span>
+            <span aria-hidden="true">·</span>
+            <span id="modelLabel">Realtime audio</span>
+          </div>
+
+          <div class="orb-wrap" aria-hidden="true">
+            <div class="orbit orbit-one"></div>
+            <div class="orbit orbit-two"></div>
+            <div class="voice-orb" id="voiceOrb">
+              <div class="orb-core"></div>
+              <div class="orb-shine"></div>
+            </div>
+          </div>
+
+          <div class="voice-copy" aria-live="polite">
+            <h2 id="voiceStateTitle">The room is waiting</h2>
+            <p id="voiceStateDescription">
+              Open the room, allow microphone access, and speak naturally.
+            </p>
+          </div>
+
+          <div class="primary-controls">
+            <button class="primary-button" id="sessionButton" type="button">
+              <span class="button-icon" aria-hidden="true">✦</span>
+              <span id="sessionButtonText">Open the room</span>
+            </button>
+            <button
+              class="icon-button"
+              id="muteButton"
+              type="button"
+              aria-label="Mute microphone"
+              aria-pressed="false"
+              disabled
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 15.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v6a3.5 3.5 0 0 0 3.5 3.5Z" />
+                <path d="M5.5 11.5v.5a6.5 6.5 0 0 0 13 0v-.5M12 18.5V22M8.5 22h7" />
+              </svg>
+            </button>
+          </div>
+
+          <p class="privacy-note">
+            Your standard API key stays on the server. The browser receives a
+            short-lived session credential for this room only.
+          </p>
+        </div>
+
+        <aside class="story-panel card" aria-label="World Room transcript and prompts">
+          <div class="panel-header">
+            <div>
+              <p class="panel-kicker">Live notes</p>
+              <h2>What the room remembers</h2>
+            </div>
+            <button class="text-button" id="clearButton" type="button">Clear</button>
+          </div>
+
+          <div class="prompt-sparks" id="promptSparks" aria-label="Starting ideas">
+            <button type="button" data-prompt="A city built on the back of a sleeping giant.">Sleeping giant</button>
+            <button type="button" data-prompt="A diplomat who can only tell the truth after sunset.">Sunset truth</button>
+            <button type="button" data-prompt="A festival where everyone trades one memory.">Memory festival</button>
+            <button type="button" data-prompt="The moon has sent the kingdom an invoice.">Moon invoice</button>
+          </div>
+
+          <div class="transcript" id="transcriptList" aria-live="polite" aria-label="Conversation transcript">
+            <div class="empty-state" id="emptyState">
+              <span class="empty-glyph" aria-hidden="true">◌</span>
+              <p>Your shared world will appear here as you speak.</p>
+            </div>
+          </div>
+
+          <form class="seed-form" id="seedForm">
+            <label class="sr-only" for="seedInput">Type a worldbuilding seed</label>
+            <input
+              id="seedInput"
+              name="seed"
+              type="text"
+              maxlength="500"
+              autocomplete="off"
+              placeholder="Or type a spark…"
+              disabled
+            />
+            <button type="submit" aria-label="Send typed spark" disabled id="seedButton">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m5 12 14-7-4 14-3-6-7-1Z" />
+              </svg>
+            </button>
+          </form>
+        </aside>
+      </section>
+
+      <section class="how-it-works" aria-label="How World Room works">
+        <article>
+          <span>01</span>
+          <h3>Speak the spark</h3>
+          <p>Start with a mood, person, place, problem, or contradiction.</p>
+        </article>
+        <article>
+          <span>02</span>
+          <h3>Interrupt freely</h3>
+          <p>Realtime voice activity detection keeps the exchange collaborative.</p>
+        </article>
+        <article>
+          <span>03</span>
+          <h3>Find the hook</h3>
+          <p>Shape the idea into conflict, choice, and a scene worth entering.</p>
+        </article>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

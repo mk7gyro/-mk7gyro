@@ -1,0 +1,18 @@
+{
+  "name": "world-room",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A realtime voice-first worldbuilding companion powered by the OpenAI Realtime API.",
+  "scripts": {
+    "dev": "vercel dev",
+    "test": "node --test",
+    "check": "node --check app.js && node --check api/token.js && node --test"
+  },
+  "devDependencies": {
+    "vercel": "^54.16.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
