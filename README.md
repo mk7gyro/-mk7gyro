@@ -1,66 +1,72 @@
-# Campaign Concept Studio
+# Launch Desk
 
-Campaign Concept Studio is a full-stack marketing workspace that turns a short brief into a structured campaign platform, three copy routes, a prioritized launch checklist, two image prompts, and generated campaign key art.
+Launch Desk is a full-stack engineering launch-planning agent. A user supplies a product brief, audience, target date, constraints, and available assets. The agent returns a prioritized release plan, risk register, owner checklist, channel-specific launch copy, and focused follow-up questions.
 
-It uses the current OpenAI **Responses API** for both stages:
+The implementation uses the current OpenAI **Agents SDK for JavaScript/TypeScript** with the OpenAI Responses provider. It does not use the deprecated Assistants API, legacy Completions, or hand-written Chat Completions tool loops.
 
-1. `responses.parse()` creates a strict, typed campaign plan.
-2. `responses.create()` invokes the built-in `image_generation` tool for each visual direction.
+## What the agent does
 
-No legacy Completions, Chat Completions, Assistants API, or browser-side OpenAI calls are used.
-
-## Output
-
-- Concise campaign concept and strategic rationale
-- Exactly three headline, body, and CTA variants
-- Prioritized launch checklist with phases and owner roles
-- Two production-oriented image prompts
-- Two generated campaign images by default
-- Explicit assumptions when the brief lacks proof points or decisions
+- Forces at least one function-tool call before the final answer.
+- Extracts release tasks from the product brief.
+- Scores readiness against a deterministic rubric.
+- Generates an owner-role checklist with evidence requirements.
+- Drafts restrained release-note, email, social, and in-product copy.
+- Streams tool progress and model text deltas to the browser.
+- Preserves uncertainty and asks follow-up questions when details are missing.
 
 ## Architecture
 
-### Browser
-
-- Collects campaign brief, audience, product details, tone, and channel selections.
-- Calls `POST /api/concept` and renders the structured plan.
-- Calls `POST /api/images` only after the plan succeeds.
-- Shows empty, strategy-loading, image-loading, partial-success, error, and completed states.
-- Keeps generated image data in the current browser session and supports image download.
-- Never receives `OPENAI_API_KEY` and never imports the OpenAI SDK.
-
-### Server
-
-- Validates every request with Zod.
-- Creates the campaign plan with `openai.responses.parse()` and `zodTextFormat`.
-- Generates images with `openai.responses.create()` and the Responses `image_generation` tool.
-- Uses `store: false` for both stages.
-- Normalizes upstream failures into safe application errors.
-- Allows strategy to remain usable if image generation fails or is rate-limited.
-
-## Project structure
-
 ```text
-api/concept.js                 Structured campaign plan endpoint
-api/images.js                  Responses image-tool endpoint
-src/campaign/config.js         Model and image settings
-src/campaign/schemas.js        Input and structured-output schemas
-src/campaign/prompts.js        Strategy and image prompt construction
-src/campaign/openai.js         Server-only OpenAI SDK integration
-src/server/errors.js           Safe JSON and error mapping
-index.html                     Application shell
-app.js                         Progressive client flow and rendering
-styles.css                     Responsive production UI
-tests/                         Validation, schema, and image extraction tests
-scripts/verify-sdk.mjs         SDK and schema construction smoke check
-docs/DEVELOPER_NOTES.md        Extension, operations, and tuning notes
+index.html                       Frontend shell and launch intake
+styles.css                      Responsive visual system
+app.js                          NDJSON stream client and progressive UI
+api/agent.js                    Server-side streamed Agents SDK endpoint
+api/health.js                   Configuration health endpoint
+src/agent/config.js             Model and reasoning settings
+src/agent/schemas.js            API and tool Zod schemas
+src/agent/tools.js              Pure planning helpers + four function tools
+src/agent/launch-agent.js       Agent instructions and reusable Runner
+src/agent/stream-events.js      SDK event → application event adapter
+src/agent/observability.js      Runner lifecycle logging hooks
+src/server/ndjson.js            Stream response and safe error helpers
+tests/                          Validation, tool, and stream-protocol tests
+scripts/verify-sdk.mjs          Construction smoke check
+scripts/verify-stream.mjs       Real streamed endpoint verification
+docs/DEVELOPER_NOTES.md         Extension and operations notes
 ```
+
+### Client/server boundary
+
+The browser sends the intake only to `POST /api/agent`. It receives newline-delimited JSON events:
+
+- `meta`
+- `agent`
+- `tool_progress`
+- `text_delta`
+- `complete`
+- `error`
+
+The browser does not import `@openai/agents`, does not call OpenAI directly, and never receives `OPENAI_API_KEY`.
+
+The server validates input, runs the agent, executes tools, streams safe progress events, and maps upstream errors to application-safe messages.
+
+## Current SDK patterns
+
+- `new Agent({ instructions, tools, modelSettings })`
+- Zod-backed `tool()` function tools
+- One reusable `Runner` created at module startup
+- `runner.run(agent, input, { stream: true })`
+- Full `for await` event processing for tool and raw model events
+- `await stream.completed`
+- Forced first tool call with `modelSettings.toolChoice = "required"`
+- Default `resetToolChoice = true`, allowing the model to produce its final answer after tool execution
+- Built-in server tracing with `workflowName`, metadata, and sensitive payload capture disabled
 
 ## Requirements
 
 - Node.js 20 or newer
-- An OpenAI API project with access to the configured text model and image generation tool
-- Image generation may require organization verification in the OpenAI developer console
+- An OpenAI API project with access to the configured model
+- Vercel CLI for the included local server workflow
 
 ## Local setup
 
@@ -69,24 +75,44 @@ npm install
 cp .env.example .env.local
 ```
 
-Set the server-side key in `.env.local`:
+Configure the server environment:
 
 ```env
-OPENAI_API_KEY=your_server_side_openai_key
-OPENAI_TEXT_MODEL=gpt-5.6-terra
-OPENAI_IMAGE_MODEL=gpt-5.6-terra
-CAMPAIGN_IMAGE_COUNT=2
-CAMPAIGN_IMAGE_QUALITY=low
-CAMPAIGN_IMAGE_SIZE=1024x1024
+OPENAI_API_KEY=sk-...
+OPENAI_AGENT_MODEL=gpt-5.6-terra
+LAUNCH_DESK_REASONING_EFFORT=low
+OPENAI_AGENTS_DISABLE_TRACING=0
 ```
 
-Start the static frontend and serverless API routes together:
+Start the static frontend and API routes in the same server process:
 
 ```bash
 npm run dev
 ```
 
-Open the localhost URL printed by Vercel Dev.
+Open the local URL printed by Vercel Dev, normally `http://127.0.0.1:3000`.
+
+## Required real stream verification
+
+A successful health check or frontend load is not sufficient. Keep the dev server running and execute:
+
+```bash
+npm run verify:e2e
+```
+
+The script performs a real streamed `POST /api/agent`, reads the stream to completion, and fails unless it receives:
+
+1. at least one `tool_progress` event
+2. at least one non-empty `text_delta`
+3. a final `complete` event
+
+For a non-default local URL:
+
+```bash
+LAUNCH_DESK_BASE_URL=http://127.0.0.1:3001 npm run verify:e2e
+```
+
+This verification uses the `OPENAI_API_KEY` loaded by the server process. It therefore confirms the local server can actually reach OpenAI, rather than merely proving localhost routing works.
 
 ## Commands
 
@@ -94,63 +120,82 @@ Open the localhost URL printed by Vercel Dev.
 npm test
 npm run check
 npm run build
+npm run dev
+npm run verify:e2e
 ```
 
-`npm run check` validates browser and server syntax, executes the test suite, and verifies that the current OpenAI SDK helpers can construct the Responses request schema.
+## Model guidance
+
+The default is `gpt-5.6-terra`, which balances intelligence and cost for production planning. Set `OPENAI_AGENT_MODEL=gpt-5.6-sol` for the highest-quality complex release reviews, or evaluate `gpt-5.6-luna` for high-volume bounded planning.
+
+Change the model in `src/agent/config.js` or through `OPENAI_AGENT_MODEL`.
+
+## Where to extend
+
+- **Agent behavior:** `LAUNCH_DESK_INSTRUCTIONS` in `src/agent/launch-agent.js`
+- **Tool schemas and logic:** `src/agent/schemas.js` and `src/agent/tools.js`
+- **Model/reasoning:** `src/agent/config.js`
+- **Streaming protocol:** `src/agent/stream-events.js` and `api/agent.js`
+- **UI rendering:** `app.js`
+- **Handoffs:** add specialist agents and `handoff()` entries in `src/agent/launch-agent.js`
+- **Persistent threads:** add an SDK session, `conversationId`, or `previousResponseId`; do not mix persistence strategies without deliberate reconciliation
+
+## Tracing and observability
+
+The Agents SDK enables tracing by default in Node server runtimes. Launch Desk configures:
+
+- workflow name: `Launch Desk release planning`
+- trace metadata identifying the app and web surface
+- `traceIncludeSensitiveData: false`
+- runner lifecycle logs for agent and tool start/end events
+
+Set `OPENAI_AGENTS_DISABLE_TRACING=1` only when tracing must be disabled. Organizations using Zero Data Retention cannot use OpenAI tracing.
 
 ## Deployment
 
 The repository is configured for Vercel:
 
-1. Import the repository as a Vercel project.
-2. Add `OPENAI_API_KEY` to the Production and Preview environments.
-3. Optionally add the model and image-setting variables shown above.
-4. Deploy. The build copies the static frontend into `public/` and deploys both API routes as Node.js functions.
+1. Import the repository.
+2. Add `OPENAI_API_KEY` to Preview and Production.
+3. Optionally add the model, reasoning, and tracing environment variables.
+4. Deploy.
 
-Do not prefix the API key with `VITE_`, `NEXT_PUBLIC_`, or any other public environment-variable convention.
-
-## Configuration and tuning
-
-- **Text model:** `OPENAI_TEXT_MODEL` in `src/campaign/config.js`
-- **Image orchestration model:** `OPENAI_IMAGE_MODEL` in `src/campaign/config.js`
-- **Strategy prompt:** `CAMPAIGN_SYSTEM_PROMPT` in `src/campaign/prompts.js`
-- **Output contract:** `campaignPlanSchema` in `src/campaign/schemas.js`
-- **Image prompt wrapper:** `formatImagePrompt()` in `src/campaign/prompts.js`
-- **Image count:** `CAMPAIGN_IMAGE_COUNT`, clamped from 1 to 3
-- **Image quality:** `CAMPAIGN_IMAGE_QUALITY` (`low`, `medium`, `high`, or `auto`)
-- **Image size:** `CAMPAIGN_IMAGE_SIZE` (`1024x1024`, `1536x1024`, `1024x1536`, or `auto`)
-
-The default text and image orchestration model is `gpt-5.6-terra` for a balance of quality and cost. Evaluate `gpt-5.6-sol` for high-stakes strategic work and `gpt-5.6-luna` for high-volume, bounded generation before changing production routing.
-
-The Responses image-generation tool selects the underlying GPT Image model. If the product later needs direct single-image generation controls or image editing outside a conversational flow, evaluate the standalone Image API with `gpt-image-2` separately.
+Never expose the key through public prefixes such as `VITE_`, `NEXT_PUBLIC_`, or browser code.
 
 ## Validation checklist
 
-### Local
+### Agent behavior
 
-- [ ] `npm install` completes on Node.js 20+.
+- [ ] The agent calls at least one tool before final output.
+- [ ] The final answer includes launch summary, prioritized plan, risk register, owner checklist, launch copy, and follow-up questions.
+- [ ] Unsupported claims, customer proof, approvals, or completed work are not invented.
+- [ ] Missing launch-critical details become explicit questions.
+- [ ] P0 blockers appear before P1/P2 improvements.
+- [ ] Owner entries use roles unless actual names were supplied.
+
+### Tool outputs
+
+- [ ] Task extraction returns concrete, prioritized work.
+- [ ] Readiness score is bounded from 0 to 100 and includes failed checks.
+- [ ] Owner checklist includes owner, priority, timing, and acceptance evidence.
+- [ ] Channel copy includes only requested channels and avoids unsupported metrics.
+- [ ] Tool inputs are strictly validated by Zod.
+
+### Frontend and stream
+
+- [ ] Empty, working, results, error, cancellation, and retry states render correctly.
+- [ ] At least one tool event appears before or during model output.
+- [ ] Text appears progressively from `text_delta` events.
+- [ ] Copy-plan action works after completion.
+- [ ] Mobile and desktop layouts remain usable.
+- [ ] The browser never receives an OpenAI credential.
+
+### End-to-end
+
 - [ ] `npm run check` passes.
-- [ ] `npm run dev` serves the frontend and both API routes.
-- [ ] A missing `OPENAI_API_KEY` returns `server_not_configured` without exposing secrets.
-- [ ] A valid brief returns one concept, three copy variants, 6–12 checklist items, and two image directions.
-- [ ] Strategy renders before image generation completes.
-- [ ] At least one generated image is displayed and downloadable.
-- [ ] Image failure leaves the strategy and image prompts visible.
-- [ ] Cancel stops the active browser request.
-
-### Quality
-
-- [ ] Copy variants use materially different strategic angles.
-- [ ] Claims do not exceed supplied product evidence.
-- [ ] Requested channels influence the concept and checklist.
-- [ ] Image directions match the concept, audience, and tone.
-- [ ] Generated images avoid logos, watermarks, unsupported UI, and legible marketing copy.
-- [ ] Checklist items have useful priorities, phases, and owner roles.
-
-### Deployment
-
-- [ ] `OPENAI_API_KEY` exists in Preview and Production.
-- [ ] `/api/concept` and `/api/images` reject GET with HTTP 405.
-- [ ] Production CSP permits same-origin API calls and `data:` images.
-- [ ] Image response size remains within the hosting platform limit.
-- [ ] Rate-limit and organization-verification errors produce useful UI messages.
+- [ ] `npm run dev` starts frontend and backend together.
+- [ ] `npm run verify:e2e` receives a tool event, text delta, and completion event.
+- [ ] The server process can resolve and connect to the OpenAI API.
+- [ ] Invalid input receives a streamed `invalid_input` error.
+- [ ] Missing server key receives `server_not_configured`.
+- [ ] Traces appear under the configured workflow when tracing is enabled.

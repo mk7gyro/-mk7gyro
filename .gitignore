@@ -1,7 +1,6 @@
-node_modules
-.vercel
+node_modules/
 .env
 .env.local
-.env.*.local
+.vercel/
+public/
 .DS_Store
-npm-debug.log*

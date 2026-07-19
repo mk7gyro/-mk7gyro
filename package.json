@@ -1,17 +1,18 @@
 {
-  "name": "campaign-concept-studio",
+  "name": "launch-desk",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "A full-stack campaign concept studio built with the OpenAI Responses API.",
+  "description": "A full-stack engineering launch-planning agent built with the OpenAI Agents SDK.",
   "scripts": {
     "dev": "vercel dev",
     "test": "node --test",
-    "check": "node --check app.js && node --check api/concept.js && node --check api/images.js && node --check src/campaign/config.js && node --check src/campaign/schemas.js && node --check src/campaign/prompts.js && node --check src/campaign/openai.js && node --check src/server/errors.js && node --test && node scripts/verify-sdk.mjs",
-    "build": "mkdir -p public && cp index.html app.js styles.css public/ && npm run check"
+    "check": "node --check app.js && node --check api/agent.js && node --check api/health.js && node --check src/agent/config.js && node --check src/agent/schemas.js && node --check src/agent/tools.js && node --check src/agent/launch-agent.js && node --check src/agent/stream-events.js && node --check src/agent/observability.js && node --check src/server/ndjson.js && node --test && node scripts/verify-sdk.mjs",
+    "build": "mkdir -p public && cp index.html app.js styles.css public/ && npm run check",
+    "verify:e2e": "node scripts/verify-stream.mjs"
   },
   "dependencies": {
-    "openai": "6.48.0",
+    "@openai/agents": "0.13.5",
     "zod": "^4.0.0"
   },
   "devDependencies": {
