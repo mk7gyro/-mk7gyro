@@ -1,13 +1,7 @@
-import OpenAI from "openai";
-import { zodTextFormat } from "openai/helpers/zod";
-import { campaignPlanSchema } from "../src/campaign/schemas.js";
-import { TEXT_MODEL, IMAGE_MODEL, IMAGE_QUALITY, IMAGE_SIZE } from "../src/campaign/config.js";
+import { launchAgent, launchRunner } from "../src/agent/launch-agent.js";
+import { AGENT_MODEL } from "../src/agent/config.js";
 
-const client = new OpenAI({ apiKey: "test-key-for-construction-only" });
-const format = zodTextFormat(campaignPlanSchema, "campaign_plan");
-
-if (!client.responses || !format || format.type !== "json_schema") {
-  throw new Error("Responses API or structured-output helper is unavailable.");
-}
-
-console.log(`Responses SDK ready: text=${TEXT_MODEL}, image=${IMAGE_MODEL}, quality=${IMAGE_QUALITY}, size=${IMAGE_SIZE}`);
+if (!launchAgent || !launchRunner) throw new Error("Agent or runner did not initialize.");
+if (launchAgent.tools.length !== 4) throw new Error(`Expected 4 tools, found ${launchAgent.tools.length}.`);
+if (!launchAgent.tools.every((tool) => tool.type === "function")) throw new Error("All Launch Desk tools must be function tools.");
+console.log(`Agents SDK ready: model=${AGENT_MODEL}, tools=${launchAgent.tools.map((tool) => tool.name).join(",")}`);
