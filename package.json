@@ -1,16 +1,22 @@
 {
-  "name": "world-room",
+  "name": "launch-desk",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "A realtime voice-first worldbuilding companion powered by the OpenAI Realtime API.",
+  "description": "A streaming launch-planning agent built with the OpenAI Agents SDK.",
   "scripts": {
     "dev": "vercel dev",
     "test": "node --test",
-    "check": "node --check app.js && node --check api/token.js && node --test"
+    "check": "node --check app.js && node --check api/agent.js && node --check src/agent/launch-agent.js && node --check src/agent/tools.js && node --check src/core/planning.js && node --test && node scripts/verify-sdk-import.mjs",
+    "build": "npm run check",
+    "verify:e2e": "node scripts/verify-stream.mjs"
+  },
+  "dependencies": {
+    "@openai/agents": "0.13.4",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
-    "vercel": "^54.16.0"
+    "vercel": "^56.2.0"
   },
   "engines": {
     "node": ">=20"
