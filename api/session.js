@@ -5,7 +5,7 @@ import { authorizeSessionRequest } from "../src/server/session-access.js";
 
 export const config = { maxDuration: 30 };
 
-export function createSessionHandler({ environment = process.env, fetchImpl = (...args) => globalThis.fetch(...args) } = {}) {
+export function createSessionHandler({ environment = process.env, fetchImpl = (...args) => globalThis.fetch(...args), upstreamTimeoutMs = 15_000 } = {}) {
   return async function handler(req, res) {
     if (req.method !== "POST") {
       res.setHeader("Allow", "POST");
@@ -27,6 +27,8 @@ export function createSessionHandler({ environment = process.env, fetchImpl = (.
     try {
       const response = await fetchImpl("https://api.openai.com/v1/realtime/client_secrets", {
         method: "POST",
+        redirect: "error",
+        signal: AbortSignal.timeout(upstreamTimeoutMs),
         headers: {
           Authorization: `Bearer ${environment.OPENAI_API_KEY}`,
           "Content-Type": "application/json"
