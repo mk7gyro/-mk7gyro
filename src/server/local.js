@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sendJson } from "./http.js";
+import { authorizeSessionRequest } from "./session-access.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const port = Number.parseInt(process.env.PORT || "3000", 10);
@@ -52,10 +53,18 @@ function serveStatic(res, pathname) {
 }
 
 createServer(async (req, res) => {
-  const url = new URL(req.url || "/", `http://${req.headers.host || `127.0.0.1:${port}`}`);
   try {
+    const url = new URL(req.url || "/", `http://127.0.0.1:${port}`);
     if (url.pathname === "/api/session") {
-      if (req.method === "POST") req.body = await readJson(req);
+      if (req.method === "POST") {
+        // Reject unauthenticated requests before consuming or parsing their bodies.
+        const access = authorizeSessionRequest(req);
+        if (!access.ok) {
+          if (access.status === 401) res.setHeader("WWW-Authenticate", 'Bearer realm="World Room"');
+          return sendJson(res, access.status, { error: access.error, message: access.message });
+        }
+        req.body = await readJson(req);
+      }
       return sessionHandler(req, res);
     }
     if (url.pathname === "/api/health") return healthHandler(req, res);

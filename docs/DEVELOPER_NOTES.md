@@ -7,7 +7,7 @@ For a browser speech-to-speech product, WebRTC is the preferred Realtime transpo
 ## Session lifecycle
 
 1. User gesture starts the flow. This is required for reliable browser microphone and audio playback permission.
-2. Browser posts non-secret creative settings to `/api/session`.
+2. Browser posts creative settings to `/api/session` with the user's private room code in the Authorization header. The field is cleared when the session request starts; the code is not persisted in application browser storage.
 3. Server creates a fresh short-lived client secret with the permanent API key.
 4. Browser constructs the agent and session before calling `connect()`.
 5. The WebRTC transport opens, applies the initial session configuration, and begins audio capture.
@@ -41,6 +41,12 @@ On iOS, keep session start inside a direct click/tap handler. Backgrounding Safa
 - Transcript gaps after interruption are expected; interrupted output may not receive a final transcript.
 
 Never attempt to reconnect with the same ephemeral token after a failed or closed connection.
+
+## Session access boundary
+
+The token route denies access unless the server has a generated `REALTIME_ACCESS_TOKEN` and exact `PUBLIC_ORIGIN`. The access code is separate from `OPENAI_API_KEY`; it grants use of the room and must be protected. Authorization, matching Origin and application/json are required before the upstream call. The local server also checks these conditions before reading the request body and binds only to 127.0.0.1. HTTP origins are limited to that local address; deployments use HTTPS.
+
+Origin is not authentication: non-browser clients can supply it. The shared code protects a private demo, not individual identities. Use server-verified identity-provider sessions for a public or multi-user service. Deployment Protection and WAF rate limiting are external controls to configure and verify; no process-local counter is presented as a distributed quota or billing cap. `npm test` uses injected responses and performs no live API call.
 
 ## Audio and transcript UI
 

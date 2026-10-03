@@ -27,6 +27,8 @@
       <form class="setup panel" id="worldForm">
         <div class="panel-heading"><div><span>Before the door opens</span><h2>Set the first spark</h2></div><button class="text-button" id="sampleButton" type="button">Load example</button></div>
         <label>World seed<textarea id="worldSeed" required minlength="8" maxlength="1200" placeholder="A city beneath a sleeping moon, a kingdom built inside a storm, a quiet village with one impossible rule…"></textarea></label>
+        <label>Room access code<input id="accessCode" type="password" required minlength="43" maxlength="128" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="accessNote" /></label>
+        <p class="privacy-note" id="accessNote">Enter the private room code from the host. It is separate from the OpenAI API key and is cleared when the session request starts.</p>
         <div class="field-grid">
           <label>Creative mode<select id="style"><option>Mythic and luminous</option><option>Strange science fiction</option><option>Cozy and uncanny</option><option>Dark folklore</option><option>Swashbuckling adventure</option><option>Dreamlike mystery</option></select></label>
           <label>Companion voice<select id="voice"><option value="marin">Marin</option><option value="cedar">Cedar</option><option value="coral">Coral</option><option value="sage">Sage</option><option value="shimmer">Shimmer</option><option value="verse">Verse</option></select></label>

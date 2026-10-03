@@ -113,10 +113,10 @@ Treat this as collaborative improvisation. Keep spoken turns concise, normally t
 Open with one brief sensory image inspired by the seed, then ask what the user wants to discover first.`;
 }
 
-async function createSessionToken(payload) {
+async function createSessionToken(payload, accessCode) {
   const response = await fetch("/api/session", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${accessCode}` },
     body: JSON.stringify(payload)
   });
   const data = await response.json().catch(() => ({}));
@@ -143,7 +143,7 @@ function bindSessionEvents(activeSession) {
     if (type === "response.created") setState("thinking", "Imagining");
   });
   activeSession.on("error", (error) => {
-    console.error("Realtime session error", error);
+    console.error("Realtime session error", { name: error?.name || "Error" });
     showError(error?.message || error?.error?.message || "The realtime connection encountered an error.");
   });
 }
@@ -164,7 +164,10 @@ async function startSession() {
     if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) {
       throw new Error("This browser does not support the microphone and WebRTC features required by World Room.");
     }
-    const token = await createSessionToken({ worldSeed, style, voice });
+    const accessInput = $("#accessCode");
+    const tokenRequest = createSessionToken({ worldSeed, style, voice }, accessInput.value);
+    accessInput.value = "";
+    const token = await tokenRequest;
     const agent = new RealtimeAgent({
       name: "World Room",
       voice: token.voice,
@@ -206,11 +209,12 @@ async function startSession() {
     setState("listening", "Room open");
     activeSession.sendMessage("Open the World Room now with the brief invitation described in your instructions.");
   } catch (error) {
-    console.error(error);
+    console.error("Session connection failed", { name: error?.name || "Error" });
     await endSession(false);
     const denied = error?.name === "NotAllowedError" || /permission|microphone/i.test(error?.message || "");
     showError(denied ? "Microphone access was denied. Allow microphone permission in the browser, then try again." : error.message);
   } finally {
+    $("#accessCode").value = "";
     connecting = false;
     startButton.disabled = false;
   }

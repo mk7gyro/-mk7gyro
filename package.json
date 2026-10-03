@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "mkdir -p public && cp index.html styles.css public/ && npm run build:client && node src/server/local.js",
     "test": "node --test",
-    "check": "node --check api/session.js && node --check api/health.js && node --check src/realtime/config.js && node --check src/realtime/instructions.js && node --check src/realtime/session-token.js && node --check src/server/http.js && node --check src/server/local.js && node --check src/client/main.js && node --test && node scripts/verify-sdk.mjs",
+    "check": "node --check api/session.js && node --check api/health.js && node --check src/realtime/config.js && node --check src/realtime/instructions.js && node --check src/realtime/session-token.js && node --check src/server/http.js && node --check src/server/session-access.js && node --check src/server/local.js && node --check src/client/main.js && node --test && node scripts/verify-sdk.mjs",
     "build:client": "esbuild src/client/main.js --bundle --format=esm --platform=browser --target=es2022 --outfile=public/app.js",
     "build": "rm -rf public && mkdir -p public && cp index.html styles.css public/ && npm run build:client && npm run check",
     "verify:session": "node scripts/verify-session.mjs"
