@@ -34,9 +34,9 @@ export function createSessionHandler({ environment = process.env, fetchImpl = (.
         body: JSON.stringify(buildClientSecretRequest(parsed.data))
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok || typeof data.value !== "string" || !data.value.startsWith("ek_")) {
+      if (!response.ok || typeof data?.value !== "string" || !data.value.startsWith("ek_")) {
         console.error("Realtime client secret creation failed", { requestId, status: response.status, code: data?.error?.code });
-        return sendJson(res, response.status || 502, {
+        return sendJson(res, response.ok ? 502 : (response.status || 502), {
           error: "realtime_session_failed",
           message: safeUpstreamMessage(response.status),
           requestId

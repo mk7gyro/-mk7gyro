@@ -46,7 +46,7 @@ docs/DEVELOPER_NOTES.md           Latency, lifecycle, permission, and recovery n
 
 ## Requirements
 
-- Node.js 20–22
+- Node.js 22 LTS (use the 22.x runtime for local development and deployment). See the [official Node.js release status](https://nodejs.org/en/about/previous-releases).
 - A modern browser with WebRTC and `getUserMedia`
 - HTTPS in production; localhost is accepted by browsers for microphone development
 - An OpenAI API project with access to `gpt-realtime-2.1`
@@ -54,7 +54,7 @@ docs/DEVELOPER_NOTES.md           Latency, lifecycle, permission, and recovery n
 ## Local setup
 
 ```bash
-npm install
+npm ci
 cp .env.example .env.local
 ```
 

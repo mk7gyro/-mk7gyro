@@ -244,8 +244,9 @@ async function endSession(resetState = true) {
 async function toggleMute() {
   if (!session) return;
   try {
-    muted = !muted;
-    await session.mute(muted);
+    const nextMuted = !muted;
+    await session.mute(nextMuted);
+    muted = nextMuted;
     micButton.setAttribute("aria-pressed", String(!muted));
     micButton.querySelector("strong").textContent = muted ? "Microphone paused" : "Microphone live";
     setState("listening", muted ? "Microphone paused" : "Listening");

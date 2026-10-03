@@ -120,3 +120,12 @@ test("authorized malformed intake is rejected before fetching", async () => {
   assert.equal(result.statusCode, 400);
   assert.equal(result.calls.length, 0);
 });
+
+for (const [name, data] of [["missing token", {}], ["invalid token", { value: "invalid" }], ["null JSON", null]]) {
+  test(`successful upstream with ${name} returns a gateway error`, async () => {
+    const result = await request({ upstream: { ok: true, status: 200, json: async () => data } });
+    assert.equal(result.statusCode, 502);
+    assert.equal(result.body.error, "realtime_session_failed");
+    assert.equal(result.calls.length, 1);
+  });
+}
